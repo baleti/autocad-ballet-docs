@@ -42,8 +42,41 @@ still need to work out debugging and lsp support in emacs
 *** 04
 **** =13:00= decided to write a custom installer instead of using autodesk/windows frameworks
 acad.lsp-based workflow is both simple and bespoke, so popular framework will likely only get in the way
+***** implementation
+[2025-09-06 Sat 22:23]
+****** detect support paths of installed autocad products from windows registry RoamableRootFolder
+****** add %appdata%/autocad-ballet to trusted paths in user profile
+otherwise every lisp file would trigger warning on first load (and future updates)
+if I knew it would be necessary sooner I would have [[id:dd7388c6-595a-434d-8cf4-0086b44a45b6][designed netload]] so it creates a separate DLLs for each session
 *** 05
-**** =14:00= decided to setup documentation repo properlt this time
+**** =14:00= decided to keep documentation for this project up-to-date this time
 use hugo static site generator to make it pretty
 create one .org file per command, likely one page listing them all
 move journal there too
+*** 06
+**** =01:30= simplify updating of .net assembly, avoid locking through separate copies in %temp% directory
+:PROPERTIES:
+:ID:       dd7388c6-595a-434d-8cf4-0086b44a45b6
+:END:
+instead of loading .dll from %appdata% directly a copy is created to %temp%/autocad-ballet/autocad-ballet.dll via acad.lsp script (on each start of autocad)
+a single dll is used by all autocad processes (same name) to avoid prompting user for permission each time
+InvokeAddinCommand can still load newer commands from the main dll in %appdata% without locking (as before)
+recompilation of the main .dll in %appdata% is simplified a bit
+this possibly could have been simplified by trying to set this location to be trusted via registry (if possible at all)
+  but it seems much more intrusive
+***** unexpectedly vl-copy-file function in autolisp doesn't have an option to preserve date modified when copying file
+this kept triggering user prompt to trust a file
+had to resort to COM object Scripting.FileSystemObject
+I was told these are well-maintained for some time now
+didn't want to spawn a cmd.exe that would perform xcopy instead
+**** =15:53= moved .csproj files to folders with .cs files
+dotnet build requires less modifications (Inlcude xml elements) and as project progresses this organization makes sense
+similar to Makefiles in a way
+at the beginning when project seemed to require only a single .csproj it seemed simpler to keep only a single .csproj in root
+**** =18:52= reviewing frameworks for managing documentation
+hugo still on top for simplicity
+looked into mkdocs, docosaurus, jakyll, wordpress and plain html/css/js
+mkdocs material theme usefully showed the main components of documentation site
+  search bar, site tree, table of contents, contents page
+plain html is tempting, but translations will be needed even for turning org mode into html
+  if invoking code to render html can't be avoided then may as well leverage hugo
