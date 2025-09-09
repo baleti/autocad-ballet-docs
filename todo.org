@@ -1,0 +1,11 @@
+* invoke lisp commands from InvokeAddinCommand
+* rename sheets
+find a way to consistenyly match and replace data points on titleblocks
+* split with a line
+should affect hatches and other elements
+* stretch hatches along with other elements
+* align with copy
+* swap blocks
+* filter/datagrid for xrefs
+that dialog is hard to navigate with larger amount of xrefs
+a regular window might be better

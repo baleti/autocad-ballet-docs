@@ -69,14 +69,83 @@ this kept triggering user prompt to trust a file
 had to resort to COM object Scripting.FileSystemObject
 I was told these are well-maintained for some time now
 didn't want to spawn a cmd.exe that would perform xcopy instead
+***** separate autocad-ballet.dlls per process instead of sharing it across all processes
+[2025-09-09 Tue 01:40]
+trusted path warnings and having to close all autocad processes only to reload .net assembly was cumbersome
+  invokeaddincommand still works well for testing, but once done you may want to start using command directly from autocad
+    this new design should simplify this
+previously dissuaded, because didn't consider adding them to trusted paths
+into %appdata%/.../temp instead of %temp%
 **** =15:53= moved .csproj files to folders with .cs files
 dotnet build requires less modifications (Inlcude xml elements) and as project progresses this organization makes sense
 similar to Makefiles in a way
 at the beginning when project seemed to require only a single .csproj it seemed simpler to keep only a single .csproj in root
 **** =18:52= reviewing frameworks for managing documentation
-hugo still on top for simplicity
+hugo still seems best, most maintainable
 looked into mkdocs, docosaurus, jakyll, wordpress and plain html/css/js
 mkdocs material theme usefully showed the main components of documentation site
   search bar, site tree, table of contents, contents page
 plain html is tempting, but translations will be needed even for turning org mode into html
   if invoking code to render html can't be avoided then may as well leverage hugo
+*** 07
+**** =16:08= major redesign to support multiversion in a single project
+***** trying to leverage "sdk-style" csproj and TargetFrameworks feature
+mentioned on [[https://thebuildingcoder.typepad.com/blog/2018/06/multi-targeting-revit-versions-cad-terms-texture-maps.html#2][buidling coder in 2018]] as an improvement compared to previous methods
+I hope that it will allow targetting multiple frameworks or even multiple higher-level configurations
+sadly it didn't work, duplicate .net frameworks conflicted with each other
+#+begin_src xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>acad2017;acad2018;...;acad2026</TargetFrameworks>
+    ...
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'acad2017'">
+    <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <AssemblyName>autocad-ballet-2017</AssemblyName>
+    <DefineConstants>ACAD2017</DefineConstants>
+    <AutoCADYear>2017</AutoCADYear>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'acad2018'">
+    <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <AssemblyName>autocad-ballet-2018</AssemblyName>
+    <DefineConstants>ACAD2018</DefineConstants>
+    <AutoCADYear>2018</AutoCADYear>
+  </PropertyGroup>
+  ...
+  <PropertyGroup Condition="'$(TargetFramework)' == 'acad2026'">
+    <TargetFrameworkIdentifier>.NETCoreApp</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v8.0</TargetFrameworkVersion>
+    <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
+    <AssemblyName>autocad-ballet-2026</AssemblyName>
+    <DefineConstants>ACAD2026</DefineConstants>
+    <AutoCADYear>2026</AutoCADYear>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'acad2017'">
+    <PackageReference Include="AutoCAD.NET" Version="21.0.2" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'acad2018'">
+    <PackageReference Include="AutoCAD.NET" Version="22.0.0" ExcludeAssets="runtime" />
+  </ItemGroup>
+  ...
+  <ItemGroup Condition="'$(TargetFramework)' == 'acad2026'">
+    <PackageReference Include="AutoCAD.NET" Version="25.1.0" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>
+#+end_src
+***** script build process
+****** downgrade codebase to c# 7.3 unless necessary
+compiler defines/constants allow for ~#if ACAD2025~ blocks
+but that makes code less readbale and most features seem to be only a syntatic sugar
+****** couldn't kept using --output (-o) option with multiple builds to a single directory
+dotnet kept deleting previous ones in a dlat directory
+I suppose that's for the better though as folders will become necessary when other dependencies come in
+*** 08
+**** =12:56= registering commands in autocad requries an "attribute"
+[assembly: CommandClass(typeof(AutoCADBallet.FilterSelectedCommand))]
+InvokeAddinCommand picks them up even without it
+caught me off guard
