@@ -149,3 +149,9 @@ I suppose that's for the better though as folders will become necessary when oth
 [assembly: CommandClass(typeof(AutoCADBallet.FilterSelectedCommand))]
 InvokeAddinCommand picks them up even without it
 caught me off guard
+*** 09
+**** =23:56= reservations about running git repo from %appdata% folder also used by autocad for runtime data/configuration
+put them into a separate folder for now
+keeping everything in one place may have future advantages and simplify design
+  don't have to  adjust build scripts (ost-built commands) copying binaries across
+    although this might be bridged with symlinks (even on windows)
